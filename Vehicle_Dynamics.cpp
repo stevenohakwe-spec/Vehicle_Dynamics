@@ -55,29 +55,37 @@ double cubicSplineInterpolator(double dataArray[10][10], int dataAmount, double 
     */
     
     
-    double M[dataAmount] = {0};  //this will be dataAmount one a dataAmount can be read from an external txt file.
+    double D[dataAmount] = {0};  //This will eventually be dataAmount once dataAmount can be read from an external txt file.
     dataArray[0][2] = 0;
     double output;
     
     //To figure out the constants for the slope equations
-    for (int i=1; i<dataAmount; ++i)
-        M[i] = 6 * ((dataArray[i + 1][1] - dataArray[i][1]) - (dataArray[i][1] - dataArray[i-1][1])); 
+    for (int i=1; i<dataAmount - 1; ++i)
+        D[i] = 6 * (((dataArray[i + 1][1] - dataArray[i][1])/(dataArray[i+1][0] -dataArray[i][0])) - ((dataArray[i][1] - dataArray[i-1][1])/(dataArray[i][0] - dataArray[i-1][0]))); 
     
     
-    int M1coefficient = 1;
-    int constant =  M[1];
-    int M1Prev = 0;
-    int constantPrev = 0;
+    double M1coefficient = 1.0;
+    double constant =  0.0;
+    double M1Prev = 0.0;
+    double constantPrev = 0.0;
+    double M1Next = 0.0;
+    double constantNext = 0.0;
     
     
     //To find M1
-    for (int i=1; i<dataAmount; ++i)
+    //Assumptions: X intervalks have equal spacing
+    for (int i=1; i<dataAmount - 1; ++i)
     {
-        M1coefficient += (M1coefficient * -4) + M1Prev;
-        constant += (constant * -4) + constantPrev;
+        M1Next = - (M1coefficient * 4) -  M1Prev;
+        constantNext = D[i] - (constant * 4) - constantPrev;
+        
         M1Prev = M1coefficient;
         constantPrev = constant;
+        
+        M1coefficient = M1Next;
+        constant = constantNext;
     }
+    
     double M1 = constant/M1coefficient;
     
     dataArray[0][2] = 0;
@@ -85,30 +93,33 @@ double cubicSplineInterpolator(double dataArray[10][10], int dataAmount, double 
     
     //To figure out M values
     
-    for (int i=2; i<dataAmount; ++i)
-        dataArray[i][2] = M[i] - ((4*dataArray[i-1][2]) + dataArray[i-2][2]); 
+    dataArray[2][2] = D[1] - 4 * dataArray[1][2] - dataArray[0][2];
+    
+    for (int i=3; i<dataAmount - 1; ++i)
+        dataArray[i][2] = D[i] - ((4*dataArray[i-1][2]) + dataArray[i-2][2]); 
     
     
-    for (int i=0; i<dataAmount; ++i)
+    for (int i=0; i<dataAmount - 1; ++i)
     {
-        if (dataArray[entry][0] == dataArray[i][0])
-            output = dataArray[entry][1];
+        if (entry == dataArray[i][0])
+            output = dataArray[i][1];
         else
         {
-            if (dataArray[entry][0] > dataArray[i][0] && dataArray[entry][0] < dataArray[i+1][0])
+            if (entry > dataArray[i][0] && entry < dataArray[i+1][0])
                 {
                     double a,b,c,d;
-                    d = dataArray[entry][1];
-                    a = (dataArray[entry+1][2] - dataArray[entry][2])/6;
-                    b = dataArray[entry][2]/2;
-                    c = (dataArray[entry+1][1]-dataArray[entry][1]) - (((2*dataArray[entry][2]) + dataArray[entry+1][2])/6);
+                    d = dataArray[i][1];
+                    a = (dataArray[i+1][2] - dataArray[i][2])/6;
+                    b = dataArray[i][2]/2;
+                    c = (dataArray[i+1][1]-dataArray[i][1]) - (((2*dataArray[i][2]) + dataArray[i+1][2])/6);
           
-                 output = (a*pow(entry,3) + (b*pow(entry,2)) + (c*entry) + d);    
+                 output = (a*pow((entry-dataArray[i][0]),3) + (b*pow((entry-dataArray[i][0]),2)) + (c*(entry-dataArray[i][0])) + d);    
                 }
         }
     }
     return output;    
 }
+
 
 void leftTurnSlipAngles (const VehicleParameters& currentCar, VehicleState& car)
 {
